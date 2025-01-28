@@ -4,9 +4,10 @@ import threading
 
 def monitor_agent(client_socket, agent_address):
     # Get UDP port information from the agent
-    udp_info = client_socket.recv(1024).decode()
-    udp_ip, udp_port = udp_info.split(":")
-    print(f"Agent UDP monitoring set up at {udp_ip}:{udp_port}")
+    # udp_info = client_socket.recv(1024).decode()
+    # print(udp_info + "=====")
+    # udp_ip, udp_port = udp_info.split(":")
+    # print(f"Agent UDP monitoring set up at {udp_ip}:{udp_port}")
 
     while True:
         try:
