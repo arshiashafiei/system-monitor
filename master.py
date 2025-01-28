@@ -1,5 +1,6 @@
 import socket
 import threading
+import time
 
 
 def monitor_agent(client_socket, agent_address):
@@ -8,21 +9,36 @@ def monitor_agent(client_socket, agent_address):
     # print(udp_info + "=====")
     # udp_ip, udp_port = udp_info.split(":")
     # print(f"Agent UDP monitoring set up at {udp_ip}:{udp_port}")
-
     while True:
         try:
-            # Receive monitoring data from the agent
+            ask_agent(client_socket, agent_address)
+
             data = client_socket.recv(1024).decode()
             if data:
                 print(f"Received from {agent_address}: {data}")
-            else:
-                break
         except Exception as e:
             print(f"Error communicating with agent {agent_address}: {e}")
             break
 
     client_socket.close()
     print(f"Connection closed for agent {agent_address}")
+
+
+def ask_agent(client_socket, agent_address):
+    # Get UDP port information from the agent
+    # udp_info = client_socket.recv(1024).decode()
+    # print(udp_info + "=====")
+    # udp_ip, udp_port = udp_info.split(":")
+    # print(f"Agent UDP monitoring set up at {udp_ip}:{udp_port}")
+    try:
+        request_body = "Hey agent, how's life treating you? Respond with 'Alive and Kicking' or 'Need Help'!"
+
+        client_socket.send(request_body.encode())
+        time.sleep(2)
+    except Exception as e:
+        print(f"Error communicating with agent {agent_address}: {e}")
+
+    print(f"Asking {agent_address}, How's life treating you?")
 
 
 def udp_alert_listener(udp_ip, udp_port):
