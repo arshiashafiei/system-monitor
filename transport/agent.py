@@ -2,30 +2,29 @@ import socket
 import psutil
 import time
 import threading
+import os
 
 
 def send_system_info(master_socket):
     request_body = "Hey agent, how's life treating you? Respond with 'Alive and Kicking' or 'Need Help'!"
     while True:
         question = master_socket.recv(1024).decode()
-        print("QUESTION:")
-        print(question)
-        print(request_body)
+
         if question == request_body:
             try:
-                # Get system information
                 memory = psutil.virtual_memory()
                 cpu = psutil.cpu_percent(interval=1)
                 processes = len(psutil.pids())
-                print("QUESTIONAAAAAAAAAAAAAAAAAa:")
 
                 info = f"CPU: {cpu}%, Memory: {memory.percent}%, Processes: {processes}"
                 master_socket.send(info.encode())
-                print("QUESTIONAAAAAAAAAAAAAAAAAakdsajfvbdsavba:")
-                # # Check for high usage and send UDP alert if necessary
-                # if cpu > 80 or memory.percent > 80:
-                #     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                #     udp_socket.sendto(f"High usage detected: CPU {cpu}%, Memory {memory.percent}%".encode(), (UDP_IP, UDP_PORT))
+            except Exception as e:
+                print(f"Error sending system info: {e}")
+                break
+        elif question == "restart":
+            try:
+                # os.system("reboot")
+                print("system restarted!!!!!!!!!!!!!!!!!!!!!:")
             except Exception as e:
                 print(f"Error sending system info: {e}")
                 break

@@ -4,11 +4,7 @@ import time
 
 
 def monitor_agent(client_socket, agent_address):
-    # Get UDP port information from the agent
-    # udp_info = client_socket.recv(1024).decode()
-    # print(udp_info + "=====")
-    # udp_ip, udp_port = udp_info.split(":")
-    # print(f"Agent UDP monitoring set up at {udp_ip}:{udp_port}")
+    # restart_agent(client_socket, agent_address)
     while True:
         try:
             ask_agent(client_socket, agent_address)
@@ -48,6 +44,17 @@ def udp_alert_listener(udp_ip, udp_port):
     while True:
         alert, addr = udp_socket.recvfrom(1024)
         print(f"ALERT from {addr}: {alert.decode()}")
+
+
+def restart_agent(client_socket, agent_address):
+    try:
+        print(f"Asking {agent_address}, to RESTART.")
+        request_body = "restart"
+
+        client_socket.send(request_body.encode())
+        time.sleep(2)
+    except Exception as e:
+        print(f"Error communicating with agent {agent_address}: {e}")
 
 
 if __name__ == "__main__":
