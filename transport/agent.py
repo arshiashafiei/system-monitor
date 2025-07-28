@@ -1,8 +1,6 @@
 import socket
 import psutil
-import time
 import threading
-import os
 
 
 def send_system_info(master_socket):
@@ -37,34 +35,56 @@ def udp_alert_sender(UDP_IP, UDP_PORT):
 
         if cpu > 80 or memory.percent > 40:
             udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            udp_socket.sendto(f"High usage detected: CPU {cpu}%, Memory {memory.percent}%".encode(), (UDP_IP, UDP_PORT))
+            udp_socket.sendto(
+                f"High usage detected: CPU {cpu}%, Memory {memory.percent}%".encode(),
+                (UDP_IP, UDP_PORT))
         else:
             break
 
 
+def master_broadcast_listener(ip, udp_port, tcp_ip, tcp_port):
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    udp_socket.bind(("", udp_port))
+    print(f"Listening for broadcast responses on {udp_port}")
+    while True:
+        message = udp_socket.recv(1024)
+        if message.decode() == "Is it just me, or did something just move on this network?":
+            udp_socket.sendto(
+                f"{tcp_ip}:{tcp_port}".encode(),
+                ("255.255.255.255", udp_port + 1))
+
+
 if __name__ == "__main__":
-    MASTER_IP = "127.0.0.1"  # Change this to the master's IP
-    MASTER_PORT = 8888
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    AGENT_IP = local_ip
+    TCP_PORT = 8888
+    broadcast_port = 8080
 
-    # Connect to master server via TCP
-    master_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    master_socket.connect((MASTER_IP, MASTER_PORT))
+    threading.Thread(target=master_broadcast_listener,
+                     args=(AGENT_IP, broadcast_port, AGENT_IP, TCP_PORT),
+                     daemon=True).start()
+    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_socket.bind((AGENT_IP, TCP_PORT))
+    tcp_socket.listen(5)
+    print(f"Agent server listening on {AGENT_IP}:{TCP_PORT}")
 
-    # Receive UDP info from the master
-    udp_info = master_socket.recv(1024).decode()
-    UDP_IP, UDP_PORT = udp_info.split(":")
-    UDP_PORT = int(UDP_PORT)
-
-    print(f"Connected to master. UDP alerts will be sent to {UDP_IP}:{UDP_PORT}")
-    threading.Thread(target=udp_alert_sender, args=(UDP_IP, UDP_PORT), daemon=True).start()
-
-    # Start sending system info
-    threading.Thread(target=send_system_info, args=(master_socket,), daemon=True).start()
-
-    # Keep the connection alive
     while True:
         try:
-            time.sleep(1)
+            master_socket, master_address = tcp_socket.accept()
+            print(f"Connection established with Master {master_address}")
+
+            udp_info = master_socket.recv(1024).decode()
+            UDP_IP, UDP_PORT = udp_info.split(":")
+            UDP_PORT = int(UDP_PORT)
+
+            print(f"Connected to master. UDP alerts will be sent to \
+                   {UDP_IP}:{UDP_PORT}")
+            threading.Thread(target=send_system_info, args=(master_socket, ),
+                             daemon=True).start()
+            threading.Thread(target=udp_alert_sender, args=(UDP_IP, UDP_PORT),
+                             daemon=True).start()
         except KeyboardInterrupt:
             print("Shutting down agent...")
             master_socket.close()
